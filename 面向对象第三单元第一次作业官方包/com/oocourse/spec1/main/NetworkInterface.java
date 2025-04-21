@@ -240,7 +240,7 @@ public interface NetworkInterface {
       @                                    !getPerson(personId2).containsTag(tagId);
       @ signals (PersonIdNotFoundException e) containsPerson(personId1) &&
       @                                     containsPerson(personId2) &&
-      @                                     getPerson(personId2).containsTag(tagId);
+      @                                     getPerson(personId2).containsTag(tagId) &&
       @                                     !getPerson(personId2).getTag(tagId).hasPerson(getPerson(personId1));
       @*/
     public /*@ safe @*/ void delPersonFromTag(int personId1, int personId2, int tagId) throws PersonIdNotFoundException,
