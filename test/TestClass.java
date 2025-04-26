@@ -44,39 +44,27 @@ public class TestClass {
         network.addRelation(3, 4, 10);
         network.addRelation(4, 2, 10); // 第二个三元组 [2,3,4]
         assertEquals(2, network.queryTripleSum());
+        network.modifyRelation(2, 3, -10);
+        assertEquals(0, network.queryTripleSum());
     }
 
     // 测试完全图中的三元组数量（n个节点的完全图应包含C(n,3)个三元组）
     @Test
     public void testCompleteGraph() throws Exception {
         Network network = new Network();
-        addPeople(network, 1, 2, 3, 4); // 添加4个节点
+        addPeople(network, 1, 2, 3, 4, 5);
 
-        // 构建完全图（添加所有6条双向边）
-        network.addRelation(1, 2, 10);
-        network.addRelation(1, 3, 10);
-        network.addRelation(1, 4, 10);
-        network.addRelation(2, 3, 10);
-        network.addRelation(2, 4, 10);
-        network.addRelation(3, 4, 10);
+        for (int i = 1; i <= 5; i++) {
+            for (int j = i + 1; j <= 5; j++) {
+                network.addRelation(i, j, 10);
+            }
+        }
 
-        // 计算组合数C(4,3)=4，验证结果
-        assertEquals(4, network.queryTripleSum());
-    }
+        // 计算 C(5,3) = 10
+        assertEquals(10, network.queryTripleSum());
 
-    // 测试修改关系后影响三元组数量
-    @Test
-    public void testModifyRelation() throws Exception {
-        Network network = new Network();
-        addPeople(network, 1, 2, 3);
-        network.addRelation(1, 2, 10);
-        network.addRelation(2, 3, 10);
-        network.addRelation(3, 1, 10);
-        assertEquals(1, network.queryTripleSum());
-
-        // 断开关系，三元组消失
-        network.modifyRelation(1, 3, -10);
-        assertEquals(0, network.queryTripleSum());
+        network.modifyRelation(1, 2, -10);
+        assertEquals(7, network.queryTripleSum());
     }
 
     // 验证 queryTripleSum 是 pure 方法（调用前后状态不变）

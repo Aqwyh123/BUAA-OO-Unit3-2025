@@ -43,14 +43,18 @@ public class Tag implements TagInterface {
 
     @Override
     public int getAgeMean() {
-        return ageSum / persons.size();
+        return persons.isEmpty() ? 0 : ageSum / persons.size();
     }
 
     @Override
     public int getAgeVar() {
-        int mean = getAgeMean();
-        int size = persons.size();
-        return (ageSquareSum - 2 * mean * ageSum + size * mean * mean) / size;
+        if (persons.isEmpty()) {
+            return 0;
+        } else {
+            int mean = getAgeMean();
+            int size = persons.size();
+            return (ageSquareSum - 2 * mean * ageSum + size * mean * mean) / size;
+        }
     }
 
     @Override
