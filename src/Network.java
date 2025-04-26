@@ -12,9 +12,10 @@ import com.oocourse.spec1.main.TagInterface;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Objects;
+import java.util.TreeMap;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class Network implements NetworkInterface {
     private final HashMap<Integer, Person> persons;
@@ -95,8 +96,8 @@ public class Network implements NetworkInterface {
 
     private int queryTripleSum(int id1, int id2) {
         int sum = 0;
-        Set<Integer> neighbors1 = persons.get(id1).viewAcquaintances().keySet();
-        Set<Integer> neighbors2 = persons.get(id2).viewAcquaintances().keySet();
+        Set<Integer> neighbors1 = persons.get(id1).viewAcquaintances();
+        Set<Integer> neighbors2 = persons.get(id2).viewAcquaintances();
         if (neighbors1.size() > neighbors2.size()) {
             Set<Integer> temp = neighbors1;
             neighbors1 = neighbors2;
@@ -159,7 +160,7 @@ public class Network implements NetworkInterface {
     private boolean search(Queue<Integer> queue, Set<Integer> visit, Set<Integer> otherVisit) {
         int size = queue.size();
         for (int i = 0; i < size; i++) {
-            for (int neighborId : persons.get(queue.poll()).viewAcquaintances().keySet()) {
+            for (int neighborId : persons.get(queue.poll()).viewAcquaintances()) {
                 if (otherVisit.contains(neighborId)) {
                     return true;
                 }
@@ -253,13 +254,9 @@ public class Network implements NetworkInterface {
         } else if (persons.get(id).getAcquaintanceSize() == 0) {
             throw new AcquaintanceNotFoundException(id);
         } else {
-            return persons.get(id).viewAcquaintances().entrySet().stream().max((entry1, entry2) -> {
-                if (!Objects.equals(entry1.getValue(), entry2.getValue())) {
-                    return entry1.getValue() - entry2.getValue(); // biggest value first
-                } else {
-                    return entry2.getKey() - entry1.getKey(); // smallest id first
-                }
-            }).orElseThrow(() -> new AcquaintanceNotFoundException(id)).getKey();
+            Person person = persons.get(id);
+            TreeMap<Integer, TreeSet<Integer>> acquaintancesMap = person.getAcquaintancesMap();
+            return acquaintancesMap.get(acquaintancesMap.lastKey()).first();
         }
     }
 }
