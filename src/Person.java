@@ -83,7 +83,13 @@ public class Person implements PersonInterface {
     }
 
     public void setLinked(PersonInterface person, int value) {
-        values.put(person.getId(), value);
+        Integer oldValue = values.put(person.getId(), value);
+        if (oldValue != null) {
+            acquaintances.get(oldValue).remove(person.getId());
+            if (acquaintances.get(oldValue).isEmpty()) {
+                acquaintances.remove(oldValue);
+            }
+        }
         acquaintances.putIfAbsent(value, new TreeSet<>());
         acquaintances.get(value).add(person.getId());
     }
