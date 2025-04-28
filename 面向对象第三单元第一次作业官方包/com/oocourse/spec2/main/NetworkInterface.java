@@ -419,7 +419,7 @@ public interface NetworkInterface {
       @ also
       @ public exceptional_behavior
       @ signals (PersonIdNotFoundException e) !containsPerson(personId);
-      @ signals (AccountIdNotFoundException e) containsPerson(personId) &&
+      @ signals (OfficialAccountIdNotFoundException e) containsPerson(personId) &&
       @                                        !containsAccount(accountId);
       @ signals (ArticleIdNotFoundException e) containsPerson(personId) &&
       @                                     containsAccount(accountId) &&
