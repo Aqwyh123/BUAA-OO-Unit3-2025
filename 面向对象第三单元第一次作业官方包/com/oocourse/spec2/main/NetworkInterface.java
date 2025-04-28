@@ -304,7 +304,7 @@ public interface NetworkInterface {
 
     /*@ public normal_behavior
       @ requires containsPerson(id1) && id1 == id2 ;
-      @ requires \result==0 ;
+      @ ensures \result == 0 ;
       @ also
       @ public normal_behavior
       @ requires containsPerson(id1) &&
@@ -350,7 +350,7 @@ public interface NetworkInterface {
      @ requires containsPerson(personId) &&
      @          !containsAccount(accountId);
      @ assignable accounts;
-     @ ensures containsAccount(accountId) && accounts.get(accountId).containsFollower(personId);
+     @ ensures containsAccount(accountId) && accounts.get(accountId).containsFollower(personId) && accounts.get(accountId).getOwnerId() == personId;
      @ ensures (\exists int i; 0 <= i && i < accounts.get(accountId).followers.length; followers[i].getId() == personId && contributions[i] == 0);
      @ also
      @ public exceptional_behavior
