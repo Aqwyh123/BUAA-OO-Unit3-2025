@@ -1,4 +1,4 @@
-import com.oocourse.spec1.main.Runner;
+import com.oocourse.spec2.main.Runner;
 
 public class MainClass {
     public static void main(String[] args) throws Exception {

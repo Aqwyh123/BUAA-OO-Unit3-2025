@@ -1,29 +1,44 @@
-import com.oocourse.spec1.exceptions.AcquaintanceNotFoundException;
-import com.oocourse.spec1.exceptions.EqualPersonIdException;
-import com.oocourse.spec1.exceptions.EqualRelationException;
-import com.oocourse.spec1.exceptions.EqualTagIdException;
-import com.oocourse.spec1.exceptions.PersonIdNotFoundException;
-import com.oocourse.spec1.exceptions.RelationNotFoundException;
-import com.oocourse.spec1.exceptions.TagIdNotFoundException;
-import com.oocourse.spec1.main.NetworkInterface;
-import com.oocourse.spec1.main.PersonInterface;
-import com.oocourse.spec1.main.TagInterface;
+import com.oocourse.spec2.exceptions.AcquaintanceNotFoundException;
+import com.oocourse.spec2.exceptions.ArticleIdNotFoundException;
+import com.oocourse.spec2.exceptions.ContributePermissionDeniedException;
+import com.oocourse.spec2.exceptions.DeleteOfficialAccountPermissionDeniedException;
+import com.oocourse.spec2.exceptions.DeleteArticlePermissionDeniedException;
+import com.oocourse.spec2.exceptions.EqualArticleIdException;
+import com.oocourse.spec2.exceptions.EqualOfficialAccountIdException;
+import com.oocourse.spec2.exceptions.EqualPersonIdException;
+import com.oocourse.spec2.exceptions.EqualRelationException;
+import com.oocourse.spec2.exceptions.EqualTagIdException;
+import com.oocourse.spec2.exceptions.OfficialAccountIdNotFoundException;
+import com.oocourse.spec2.exceptions.PathNotFoundException;
+import com.oocourse.spec2.exceptions.PersonIdNotFoundException;
+import com.oocourse.spec2.exceptions.RelationNotFoundException;
+import com.oocourse.spec2.exceptions.TagIdNotFoundException;
+import com.oocourse.spec2.main.NetworkInterface;
+import com.oocourse.spec2.main.PersonInterface;
+import com.oocourse.spec2.main.TagInterface;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.TreeMap;
+import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class Network implements NetworkInterface {
     private final HashMap<Integer, Person> persons;
+    private final HashMap<Integer, OfficialAccount> accounts;
+    private final HashMap<Integer, Integer> contributors;
     private int tripleSum;
+    private int coupleSum;
 
     public Network() {
         persons = new HashMap<>();
+        accounts = new HashMap<>();
+        contributors = new HashMap<>();
         tripleSum = 0;
+        coupleSum = 0;
     }
 
     @Override
@@ -59,8 +74,22 @@ public class Network implements NetworkInterface {
         } else if (persons.get(id1).isLinked(persons.get(id2))) {
             throw new EqualRelationException(id1, id2);
         } else {
-            persons.get(id1).setLinked(persons.get(id2), value);
-            persons.get(id2).setLinked(persons.get(id1), value);
+            Integer oldBest1 = Optional.of(persons.get(id1))
+                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+                .orElse(null);
+            Integer oldBest2 = Optional.of(persons.get(id2))
+                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+                .orElse(null);
+            final Integer oldBestOfOldBest1 = Optional.ofNullable(oldBest1).map(persons::get)
+                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+                .orElse(null);
+            final Integer oldBestOfOldBest2 = Optional.ofNullable(oldBest2).map(persons::get)
+                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+                .orElse(null);
+            persons.get(id1).addLinked(persons.get(id2), value);
+            persons.get(id2).addLinked(persons.get(id1), value);
+            updateCouple(id1, oldBest1, oldBestOfOldBest1);
+            updateCouple(id2, oldBest2, oldBestOfOldBest2);
             tripleSum += queryTripleSum(id1, id2);
         }
     }
@@ -77,15 +106,44 @@ public class Network implements NetworkInterface {
         } else if (!persons.get(id1).isLinked(persons.get(id2))) {
             throw new RelationNotFoundException(id1, id2);
         } else {
-            int newValue = persons.get(id1).queryValue(persons.get(id2)) + value;
+            int oldValue = persons.get(id1).queryValue(persons.get(id2));
+            int newValue = Math.max(oldValue + value, 0);
+            Integer oldBest1 = Optional.of(persons.get(id1))
+                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+                .orElse(null);
+            Integer oldBest2 = Optional.of(persons.get(id2))
+                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+                .orElse(null);
+            final Integer oldBestOfOldBest1 = Optional.ofNullable(oldBest1).map(persons::get)
+                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+                .orElse(null);
+            final Integer oldBestOfOldBest2 = Optional.ofNullable(oldBest2).map(persons::get)
+                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+                .orElse(null);
             if (newValue > 0) {
-                persons.get(id1).setLinked(persons.get(id2), newValue);
-                persons.get(id2).setLinked(persons.get(id1), newValue);
+                persons.get(id1).replaceLink(persons.get(id2), newValue);
+                persons.get(id2).replaceLink(persons.get(id1), newValue);
             } else {
-                persons.get(id1).setUnlinked(persons.get(id2));
-                persons.get(id2).setUnlinked(persons.get(id1));
+                persons.get(id1).removeLink(persons.get(id2));
+                persons.get(id2).removeLink(persons.get(id1));
                 tripleSum -= queryTripleSum(id1, id2);
             }
+            updateCouple(id1, oldBest1, oldBestOfOldBest1);
+            updateCouple(id2, oldBest2, oldBestOfOldBest2);
+            Collection<Tag> relatedTags1 = persons.get(id1).viewRelatedTags();
+            Collection<Tag> relatedTags2 = persons.get(id2).viewRelatedTags();
+            int relatedPerson2;
+            if (relatedTags1.size() > relatedTags2.size()) {
+                relatedTags1 = relatedTags2;
+                relatedPerson2 = id1;
+            } else {
+                relatedPerson2 = id2;
+            }
+            relatedTags1.forEach(tag -> {
+                if (tag.hasPerson(persons.get(relatedPerson2))) {
+                    tag.modifyPerson(oldValue, newValue);
+                }
+            });
         }
     }
 
@@ -157,22 +215,6 @@ public class Network implements NetworkInterface {
         return false;
     }
 
-    private boolean search(Queue<Integer> queue, Set<Integer> visit, Set<Integer> otherVisit) {
-        int size = queue.size();
-        for (int i = 0; i < size; i++) {
-            for (int neighborId : persons.get(queue.poll()).viewAcquaintances()) {
-                if (otherVisit.contains(neighborId)) {
-                    return true;
-                }
-                if (!visit.contains(neighborId)) {
-                    visit.add(neighborId);
-                    queue.offer(neighborId);
-                }
-            }
-        }
-        return false;
-    }
-
     @Override
     public void addTag(int personId, TagInterface tag) throws PersonIdNotFoundException,
         EqualTagIdException {
@@ -203,6 +245,19 @@ public class Network implements NetworkInterface {
             throw new EqualPersonIdException(personId1);
         } else if (persons.get(personId2).getTag(tagId).getSize() <= 999) {
             persons.get(personId2).getTag(tagId).addPerson(persons.get(personId1));
+            persons.get(personId1).addToTag(personId2, persons.get(personId2).getTag(tagId));
+        }
+    }
+
+    @Override
+    public int queryTagValueSum(int personId, int tagId) throws PersonIdNotFoundException,
+        TagIdNotFoundException {
+        if (!persons.containsKey(personId)) {
+            throw new PersonIdNotFoundException(personId);
+        } else if (!persons.get(personId).containsTag(tagId)) {
+            throw new TagIdNotFoundException(tagId);
+        } else {
+            return persons.get(personId).getTag(tagId).getValueSum();
         }
     }
 
@@ -231,6 +286,7 @@ public class Network implements NetworkInterface {
             throw new PersonIdNotFoundException(personId1);
         } else {
             persons.get(personId2).getTag(tagId).delPerson(persons.get(personId1));
+            persons.get(personId1).delFromTag(personId2, persons.get(personId2).getTag(tagId));
         }
     }
 
@@ -254,9 +310,219 @@ public class Network implements NetworkInterface {
         } else if (persons.get(id).getAcquaintanceSize() == 0) {
             throw new AcquaintanceNotFoundException(id);
         } else {
-            Person person = persons.get(id);
-            TreeMap<Integer, TreeSet<Integer>> acquaintancesMap = person.getAcquaintancesMap();
-            return acquaintancesMap.get(acquaintancesMap.lastKey()).first();
+            return persons.get(id).queryBestAcquaintance();
         }
+    }
+
+    @Override
+    public int queryCoupleSum() {
+        return coupleSum;
+    }
+
+    private void updateCouple(int id, Integer oldBest, Integer oldBestOfOldBest) {
+        Integer newBest = Optional.of(persons.get(id)).filter(p -> p.getAcquaintanceSize() != 0)
+            .map(Person::queryBestAcquaintance).orElse(null);
+        Integer newBestOfNewBest = Optional.ofNullable(newBest).map(persons::get)
+            .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
+            .orElse(null);
+        if (oldBest != null) {
+            if (id < oldBest) {
+                if (oldBestOfOldBest != null && oldBestOfOldBest == id) {
+                    coupleSum--;
+                }
+            }
+        }
+        if (newBest != null) {
+            if (id < newBest) {
+                if (newBestOfNewBest != null && newBestOfNewBest == id) {
+                    coupleSum++;
+                }
+            }
+        }
+    }
+
+    @Override
+    public int queryShortestPath(int id1,int id2) throws PersonIdNotFoundException,
+        PathNotFoundException {
+        if (!persons.containsKey(id1)) {
+            throw new PersonIdNotFoundException(id1);
+        } else if (!persons.containsKey(id2)) {
+            throw new PersonIdNotFoundException(id2);
+        } else if (id1 == id2) {
+            return 0;
+        } else {
+            final Queue<Integer> queue1 = new LinkedList<>();
+            final Queue<Integer> queue2 = new LinkedList<>();
+            final HashMap<Integer, Integer> dist1 = new HashMap<>();
+            final HashMap<Integer, Integer> dist2 = new HashMap<>();
+            final Set<Integer> visited1 = new HashSet<>();
+            final Set<Integer> visited2 = new HashSet<>();
+            queue1.offer(id1);
+            queue2.offer(id2);
+            dist1.put(id1, 0);
+            dist2.put(id2, 0);
+            visited1.add(id1);
+            visited2.add(id2);
+            while (!queue1.isEmpty() && !queue2.isEmpty()) {
+                int res;
+                if (queue1.size() <= queue2.size()) {
+                    res = search(queue1, visited1, visited2, dist1, dist2);
+                } else {
+                    res = search(queue2, visited2, visited1, dist2, dist1);
+                }
+                if (res != -1) {
+                    return res;
+                }
+            }
+            throw new PathNotFoundException(id1, id2);
+        }
+    }
+
+    @Override
+    public boolean containsAccount(int id) {
+        return accounts.containsKey(id);
+    }
+
+    @Override
+    public void createOfficialAccount(int personId, int accountId, String name) throws
+        PersonIdNotFoundException, EqualOfficialAccountIdException {
+        if (!persons.containsKey(personId)) {
+            throw new PersonIdNotFoundException(personId);
+        } else if (accounts.containsKey(accountId)) {
+            throw new EqualOfficialAccountIdException(accountId);
+        } else {
+            OfficialAccount account = new OfficialAccount(personId, accountId, name);
+            account.addFollower(persons.get(personId));
+            accounts.put(accountId, account);
+        }
+    }
+
+    @Override
+    public void deleteOfficialAccount(int personId, int accountId) throws
+        PersonIdNotFoundException, OfficialAccountIdNotFoundException,
+        DeleteOfficialAccountPermissionDeniedException {
+        if (!persons.containsKey(personId)) {
+            throw new PersonIdNotFoundException(personId);
+        } else if (!accounts.containsKey(accountId)) {
+            throw new OfficialAccountIdNotFoundException(accountId);
+        } else if (accounts.get(accountId).getOwnerId() != personId) {
+            throw new DeleteOfficialAccountPermissionDeniedException(personId, accountId);
+        } else {
+            accounts.remove(accountId);
+        }
+    }
+
+    @Override
+    public boolean containsArticle(int id) {
+        return contributors.containsKey(id);
+    }
+
+    @Override
+    public void contributeArticle(int personId,int accountId,int articleId) throws
+        PersonIdNotFoundException, OfficialAccountIdNotFoundException,
+        EqualArticleIdException, ContributePermissionDeniedException {
+        if (!persons.containsKey(personId)) {
+            throw new PersonIdNotFoundException(personId);
+        } else if (!accounts.containsKey(accountId)) {
+            throw new OfficialAccountIdNotFoundException(accountId);
+        } else if (contributors.containsKey(articleId)) {
+            throw new EqualArticleIdException(articleId);
+        } else if (!accounts.get(accountId).containsFollower(persons.get(personId))) {
+            throw new ContributePermissionDeniedException(personId, accountId);
+        } else {
+            contributors.put(articleId, accountId);
+            accounts.get(accountId).addArticle(persons.get(personId), articleId);
+            for (int follower : accounts.get(accountId).getFollowers()) {
+                persons.get(follower).addReceivedArticle(articleId);
+            }
+        }
+    }
+
+    @Override
+    public void deleteArticle(int personId,int accountId,int articleId) throws
+        PersonIdNotFoundException, OfficialAccountIdNotFoundException,
+        ArticleIdNotFoundException, DeleteArticlePermissionDeniedException {
+        if (!persons.containsKey(personId)) {
+            throw new PersonIdNotFoundException(personId);
+        } else if (!accounts.containsKey(accountId)) {
+            throw new OfficialAccountIdNotFoundException(accountId);
+        } else if (!accounts.get(accountId).containsFollower(persons.get(personId))) {
+            throw new ArticleIdNotFoundException(articleId);
+        } else if (accounts.get(accountId).getOwnerId() != personId) {
+            throw new DeleteArticlePermissionDeniedException(personId, articleId);
+        } else {
+            accounts.get(accountId).removeArticle(articleId);
+            for (int follower : accounts.get(accountId).getFollowers()) {
+                persons.get(follower).removeReceivedArticle(articleId);
+            }
+        }
+    }
+
+    @Override
+    public void followOfficialAccount(int personId,int accountId) throws PersonIdNotFoundException,
+        OfficialAccountIdNotFoundException, EqualPersonIdException {
+        if (!persons.containsKey(personId)) {
+            throw new PersonIdNotFoundException(personId);
+        } else if (!accounts.containsKey(accountId)) {
+            throw new OfficialAccountIdNotFoundException(accountId);
+        } else if (accounts.get(accountId).containsFollower(persons.get(personId))) {
+            throw new EqualPersonIdException(personId);
+        } else {
+            accounts.get(accountId).addFollower(persons.get(personId));
+        }
+    }
+
+    @Override
+    public int queryBestContributor(int id) throws OfficialAccountIdNotFoundException {
+        if (!accounts.containsKey(id)) {
+            throw new OfficialAccountIdNotFoundException(id);
+        } else {
+            return accounts.get(id).getBestContributor();
+        }
+    }
+
+    @Override
+    public List<Integer> queryReceivedArticles(int id) throws PersonIdNotFoundException {
+        if (!persons.containsKey(id)) {
+            throw new PersonIdNotFoundException(id);
+        } else {
+            return persons.get(id).queryReceivedArticles();
+        }
+    }
+
+    private boolean search(Queue<Integer> queue, Set<Integer> visited, Set<Integer> otherVisited) {
+        int size = queue.size();
+        for (int i = 0; i < size; i++) {
+            for (int neighborId : persons.get(queue.poll()).viewAcquaintances()) {
+                if (otherVisited.contains(neighborId)) {
+                    return true;
+                }
+                if (!visited.contains(neighborId)) {
+                    visited.add(neighborId);
+                    queue.offer(neighborId);
+                }
+            }
+        }
+        return false;
+    }
+
+    private int search(Queue<Integer> queue, Set<Integer> visited, Set<Integer> otherVisited,
+        HashMap<Integer, Integer> dist, HashMap<Integer, Integer> otherDist) {
+        int size = queue.size();
+        for (int i = 0; i < size; i++) {
+            Integer current = queue.poll();
+            Integer currentDist = dist.get(current);
+            for (int neighborId : persons.get(current).viewAcquaintances()) {
+                if (!visited.contains(neighborId)) {
+                    visited.add(neighborId);
+                    dist.put(neighborId, currentDist + 1);
+                    queue.offer(neighborId);
+                    if (otherVisited.contains(neighborId)) {
+                        return currentDist + 1 + otherDist.get(neighborId);
+                    }
+                }
+            }
+        }
+        return -1;
     }
 }
