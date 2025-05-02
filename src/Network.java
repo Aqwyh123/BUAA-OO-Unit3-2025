@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
@@ -31,14 +30,12 @@ public class Network implements NetworkInterface {
     private final HashMap<Integer, OfficialAccount> accounts;
     private final HashMap<Integer, Integer> contributors;
     private int tripleSum;
-    private int coupleSum;
 
     public Network() {
         persons = new HashMap<>();
         accounts = new HashMap<>();
         contributors = new HashMap<>();
         tripleSum = 0;
-        coupleSum = 0;
     }
 
     @Override
@@ -74,22 +71,8 @@ public class Network implements NetworkInterface {
         } else if (persons.get(id1).isLinked(persons.get(id2))) {
             throw new EqualRelationException(id1, id2);
         } else {
-            Integer oldBest1 = Optional.of(persons.get(id1))
-                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-                .orElse(null);
-            Integer oldBest2 = Optional.of(persons.get(id2))
-                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-                .orElse(null);
-            final Integer oldBestOfOldBest1 = Optional.ofNullable(oldBest1).map(persons::get)
-                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-                .orElse(null);
-            final Integer oldBestOfOldBest2 = Optional.ofNullable(oldBest2).map(persons::get)
-                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-                .orElse(null);
             persons.get(id1).addLinked(persons.get(id2), value);
             persons.get(id2).addLinked(persons.get(id1), value);
-            updateCouple(id1, oldBest1, oldBestOfOldBest1);
-            updateCouple(id2, oldBest2, oldBestOfOldBest2);
             tripleSum += queryTripleSum(id1, id2);
         }
     }
@@ -108,18 +91,6 @@ public class Network implements NetworkInterface {
         } else {
             int oldValue = persons.get(id1).queryValue(persons.get(id2));
             int newValue = Math.max(oldValue + value, 0);
-            Integer oldBest1 = Optional.of(persons.get(id1))
-                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-                .orElse(null);
-            Integer oldBest2 = Optional.of(persons.get(id2))
-                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-                .orElse(null);
-            final Integer oldBestOfOldBest1 = Optional.ofNullable(oldBest1).map(persons::get)
-                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-                .orElse(null);
-            final Integer oldBestOfOldBest2 = Optional.ofNullable(oldBest2).map(persons::get)
-                .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-                .orElse(null);
             if (newValue > 0) {
                 persons.get(id1).replaceLink(persons.get(id2), newValue);
                 persons.get(id2).replaceLink(persons.get(id1), newValue);
@@ -128,8 +99,6 @@ public class Network implements NetworkInterface {
                 persons.get(id2).removeLink(persons.get(id1));
                 tripleSum -= queryTripleSum(id1, id2);
             }
-            updateCouple(id1, oldBest1, oldBestOfOldBest1);
-            updateCouple(id2, oldBest2, oldBestOfOldBest2);
             Collection<Tag> relatedTags1 = persons.get(id1).viewRelatedTags();
             Collection<Tag> relatedTags2 = persons.get(id2).viewRelatedTags();
             int relatedPerson2;
@@ -316,29 +285,17 @@ public class Network implements NetworkInterface {
 
     @Override
     public int queryCoupleSum() {
-        return coupleSum;
-    }
-
-    private void updateCouple(int id, Integer oldBest, Integer oldBestOfOldBest) {
-        Integer newBest = Optional.of(persons.get(id)).filter(p -> p.getAcquaintanceSize() != 0)
-            .map(Person::queryBestAcquaintance).orElse(null);
-        Integer newBestOfNewBest = Optional.ofNullable(newBest).map(persons::get)
-            .filter(p -> p.getAcquaintanceSize() != 0).map(Person::queryBestAcquaintance)
-            .orElse(null);
-        if (oldBest != null) {
-            if (id < oldBest) {
-                if (oldBestOfOldBest != null && oldBestOfOldBest == id) {
-                    coupleSum--;
+        HashSet<Person> couples = new HashSet<>();
+        for (Person person : persons.values()) {
+            if (!couples.contains(person) && person.getAcquaintanceSize() != 0) {
+                Person bestAcquaintance = persons.get(person.queryBestAcquaintance());
+                if (bestAcquaintance.queryBestAcquaintance() == person.getId()) {
+                    couples.add(person);
+                    couples.add(bestAcquaintance);
                 }
             }
         }
-        if (newBest != null) {
-            if (id < newBest) {
-                if (newBestOfNewBest != null && newBestOfNewBest == id) {
-                    coupleSum++;
-                }
-            }
-        }
+        return couples.size() / 2;
     }
 
     @Override
