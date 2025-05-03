@@ -403,7 +403,7 @@ public class Network implements NetworkInterface {
             throw new PersonIdNotFoundException(personId);
         } else if (!accounts.containsKey(accountId)) {
             throw new OfficialAccountIdNotFoundException(accountId);
-        } else if (!accounts.get(accountId).containsFollower(persons.get(personId))) {
+        } else if (!accounts.get(accountId).containsArticle(articleId)) {
             throw new ArticleIdNotFoundException(articleId);
         } else if (accounts.get(accountId).getOwnerId() != personId) {
             throw new DeleteArticlePermissionDeniedException(personId, articleId);
