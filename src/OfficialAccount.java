@@ -1,6 +1,7 @@
 import com.oocourse.spec2.main.OfficialAccountInterface;
 import com.oocourse.spec2.main.PersonInterface;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -42,7 +43,7 @@ public class OfficialAccount implements OfficialAccountInterface {
     }
 
     public Set<Integer> getFollowers() {
-        return new HashSet<>(contributions.keySet());
+        return Collections.unmodifiableSet(contributions.keySet());
     }
 
     @Override
