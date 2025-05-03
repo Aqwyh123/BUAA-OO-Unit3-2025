@@ -385,7 +385,7 @@ public class Network implements NetworkInterface {
         } else if (contributors.containsKey(articleId)) {
             throw new EqualArticleIdException(articleId);
         } else if (!accounts.get(accountId).containsFollower(persons.get(personId))) {
-            throw new ContributePermissionDeniedException(personId, accountId);
+            throw new ContributePermissionDeniedException(personId, articleId);
         } else {
             contributors.put(articleId, accountId);
             accounts.get(accountId).addArticle(persons.get(personId), articleId);
