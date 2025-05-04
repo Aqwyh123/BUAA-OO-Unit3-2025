@@ -74,6 +74,7 @@ public class Network implements NetworkInterface {
             persons.get(id1).addLinked(persons.get(id2), value);
             persons.get(id2).addLinked(persons.get(id1), value);
             tripleSum += queryTripleSum(id1, id2);
+            updateTagValueSum(id1, id2, 0, value);
         }
     }
 
@@ -99,21 +100,25 @@ public class Network implements NetworkInterface {
                 persons.get(id2).removeLink(persons.get(id1));
                 tripleSum -= queryTripleSum(id1, id2);
             }
-            Collection<Tag> relatedTags1 = persons.get(id1).viewRelatedTags();
-            Collection<Tag> relatedTags2 = persons.get(id2).viewRelatedTags();
-            int relatedPerson2;
-            if (relatedTags1.size() > relatedTags2.size()) {
-                relatedTags1 = relatedTags2;
-                relatedPerson2 = id1;
-            } else {
-                relatedPerson2 = id2;
-            }
-            relatedTags1.forEach(tag -> {
-                if (tag.hasPerson(persons.get(relatedPerson2))) {
-                    tag.modifyPerson(oldValue, newValue);
-                }
-            });
+            updateTagValueSum(id1, id2, oldValue, newValue);
         }
+    }
+
+    private void updateTagValueSum(int id1, int id2, int oldValue, int newValue) {
+        Collection<Tag> relatedTags1 = persons.get(id1).viewRelatedTags();
+        Collection<Tag> relatedTags2 = persons.get(id2).viewRelatedTags();
+        int relatedPerson2;
+        if (relatedTags1.size() > relatedTags2.size()) {
+            relatedTags1 = relatedTags2;
+            relatedPerson2 = id1;
+        } else {
+            relatedPerson2 = id2;
+        }
+        relatedTags1.forEach(tag -> {
+            if (tag.hasPerson(persons.get(relatedPerson2))) {
+                tag.modifyPerson(oldValue, newValue);
+            }
+        });
     }
 
     @Override

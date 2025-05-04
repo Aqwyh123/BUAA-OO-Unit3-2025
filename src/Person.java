@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -17,7 +18,7 @@ public class Person implements PersonInterface {
     private final HashMap<Integer, Integer> values;
     private final TreeMap<Integer, TreeSet<Integer>> acquaintances;
     private final HashMap<Integer, Tag> ownedTags;
-    private final HashMap<Integer[], Tag> relatedTags;
+    private final HashMap<SimpleEntry<Integer, Integer>, Tag> relatedTags;
     private final LinkedList<Integer> receivedArticles;
 
     public Person(int id, String name, int age) {
@@ -71,11 +72,11 @@ public class Person implements PersonInterface {
     }
 
     public void addToTag(int personId, TagInterface tag) {
-        relatedTags.put(new Integer[]{personId, tag.getId()}, (Tag) tag);
+        relatedTags.put(new SimpleEntry<>(personId, tag.getId()), (Tag) tag);
     }
 
     public void delFromTag(int personId, TagInterface tag) {
-        relatedTags.remove(new Integer[]{personId, tag.getId()});
+        relatedTags.remove(new SimpleEntry<>(personId, tag.getId()));
     }
 
     @Override
