@@ -392,7 +392,7 @@ public class Network implements NetworkInterface {
         } else if (!accounts.get(accountId).containsFollower(persons.get(personId))) {
             throw new ContributePermissionDeniedException(personId, articleId);
         } else {
-            contributors.put(articleId, accountId);
+            contributors.put(articleId, personId);
             accounts.get(accountId).addArticle(persons.get(personId), articleId);
             for (int follower : accounts.get(accountId).getFollowers()) {
                 persons.get(follower).addReceivedArticle(articleId);
@@ -414,7 +414,7 @@ public class Network implements NetworkInterface {
             throw new DeleteArticlePermissionDeniedException(personId, articleId);
         } else {
             accounts.get(accountId).removeArticle(articleId);
-            accounts.get(accountId).decreaseContribution(persons.get(personId));
+            accounts.get(accountId).decreaseContribution(persons.get(contributors.get(articleId)));
             for (int follower : accounts.get(accountId).getFollowers()) {
                 persons.get(follower).removeReceivedArticle(articleId);
             }
