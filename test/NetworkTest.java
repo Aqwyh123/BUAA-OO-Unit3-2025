@@ -1,6 +1,8 @@
 import com.oocourse.spec2.main.PersonInterface;
 import org.junit.Test;
 
+import java.util.Random;
+
 import static org.junit.Assert.*;
 
 public class NetworkTest {
@@ -70,10 +72,11 @@ public class NetworkTest {
     public void testPure() throws Exception {
         Network network1 = new Network();
         Network network2 = new Network();
-        // 4阶完全图
+        Random random = new Random();
         for (int i = 1; i <= 4; i++) {
-            network1.addPerson(new Person(i, "P" + i, 20));
-            network2.addPerson(new Person(i, "P" + i, 20));
+            int age = random.nextInt(200) + 1;
+            network1.addPerson(new Person(i, "P" + i, age));
+            network2.addPerson(new Person(i, "P" + i, age));
         }
         for (int i = 1; i <= 4; i++) {
             for (int j = i + 1; j <= 4; j++) {
