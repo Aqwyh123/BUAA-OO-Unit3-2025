@@ -49,13 +49,14 @@ public class OfficialAccount implements OfficialAccountInterface {
     @Override
     public void addArticle(PersonInterface person, int id) {
         articles.add(id);
-        followers.get(contributions.get(person.getId())).remove(person.getId());
-        if (followers.get(contributions.get(person.getId())).isEmpty()) {
-            followers.remove(contributions.get(person.getId()));
+        int contribution = contributions.get(person.getId());
+        followers.get(contribution).remove(person.getId());
+        if (followers.get(contribution).isEmpty()) {
+            followers.remove(contribution);
         }
-        contributions.put(person.getId(), contributions.get(person.getId()) + 1);
-        followers.putIfAbsent(contributions.get(person.getId()), new TreeSet<>());
-        followers.get(contributions.get(person.getId())).add(person.getId());
+        contributions.put(person.getId(), contribution + 1);
+        followers.putIfAbsent(contribution + 1, new TreeSet<>());
+        followers.get(contribution + 1).add(person.getId());
     }
 
     @Override
@@ -66,6 +67,17 @@ public class OfficialAccount implements OfficialAccountInterface {
     @Override
     public void removeArticle(int id) {
         articles.remove(id);
+    }
+
+    public void decreaseContribution(PersonInterface person) {
+        int contribution = contributions.get(person.getId());
+        followers.get(contribution).remove(person.getId());
+        if (followers.get(contribution).isEmpty()) {
+            followers.remove(contribution);
+        }
+        contributions.put(person.getId(), contribution - 1);
+        followers.putIfAbsent(contribution - 1, new TreeSet<>());
+        followers.get(contribution - 1).add(person.getId());
     }
 
     @Override

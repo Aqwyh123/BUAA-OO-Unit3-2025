@@ -414,6 +414,7 @@ public class Network implements NetworkInterface {
             throw new DeleteArticlePermissionDeniedException(personId, articleId);
         } else {
             accounts.get(accountId).removeArticle(articleId);
+            accounts.get(accountId).decreaseContribution(persons.get(personId));
             for (int follower : accounts.get(accountId).getFollowers()) {
                 persons.get(follower).removeReceivedArticle(articleId);
             }
