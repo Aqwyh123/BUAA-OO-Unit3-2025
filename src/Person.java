@@ -161,7 +161,7 @@ public class Person implements PersonInterface {
     public List<Integer> queryReceivedArticles() {
         List<Integer> articles = new ArrayList<>(receivedArticles);
         Collections.reverse(articles);
-        return articles.subList(0, Math.min(5, acquaintances.size()));
+        return articles.subList(0, Math.min(5, articles.size()));
     }
 
     public void addReceivedArticle(int articleId) {
