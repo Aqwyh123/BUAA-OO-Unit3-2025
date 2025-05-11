@@ -1,10 +1,11 @@
 import com.oocourse.spec2.main.PersonInterface;
 import com.oocourse.spec2.main.TagInterface;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.AbstractMap.SimpleEntry;
@@ -19,7 +20,7 @@ public class Person implements PersonInterface {
     private final TreeMap<Integer, TreeSet<Integer>> acquaintances;
     private final HashMap<Integer, Tag> ownedTags;
     private final HashMap<SimpleEntry<Integer, Integer>, Tag> relatedTags;
-    private final LinkedList<Integer> receivedArticles;
+    private final LinkedHashSet<Integer> receivedArticles;
 
     public Person(int id, String name, int age) {
         this.id = id;
@@ -29,7 +30,7 @@ public class Person implements PersonInterface {
         this.acquaintances = new TreeMap<>();
         this.ownedTags = new HashMap<>();
         this.relatedTags = new HashMap<>();
-        this.receivedArticles = new LinkedList<>();
+        this.receivedArticles = new LinkedHashSet<>();
     }
 
     @Override
@@ -151,23 +152,23 @@ public class Person implements PersonInterface {
 
     @Override
     public List<Integer> getReceivedArticles() {
-        return Collections.unmodifiableList(receivedArticles);
+        List<Integer> articles = new ArrayList<>(receivedArticles);
+        Collections.reverse(articles);
+        return articles;
     }
 
     @Override
     public List<Integer> queryReceivedArticles() {
-        if (receivedArticles.size() <= 5) {
-            return Collections.unmodifiableList(receivedArticles);
-        } else {
-            return Collections.unmodifiableList(receivedArticles.subList(0, 5));
-        }
+        List<Integer> articles = new ArrayList<>(receivedArticles);
+        Collections.reverse(articles);
+        return articles.subList(0, Math.min(5, acquaintances.size()));
     }
 
     public void addReceivedArticle(int articleId) {
-        receivedArticles.addFirst(articleId);
+        receivedArticles.add(articleId);
     }
 
     public void removeReceivedArticle(int articleId) {
-        receivedArticles.removeFirstOccurrence(articleId);
+        receivedArticles.remove(articleId);
     }
 }

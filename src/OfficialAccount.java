@@ -42,7 +42,7 @@ public class OfficialAccount implements OfficialAccountInterface {
         return contributions.containsKey(person.getId());
     }
 
-    public Set<Integer> getFollowers() {
+    public Set<Integer> viewFollowers() {
         return Collections.unmodifiableSet(contributions.keySet());
     }
 

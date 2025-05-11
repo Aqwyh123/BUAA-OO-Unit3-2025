@@ -394,7 +394,7 @@ public class Network implements NetworkInterface {
         } else {
             contributors.put(articleId, personId);
             accounts.get(accountId).addArticle(persons.get(personId), articleId);
-            for (int follower : accounts.get(accountId).getFollowers()) {
+            for (int follower : accounts.get(accountId).viewFollowers()) {
                 persons.get(follower).addReceivedArticle(articleId);
             }
         }
@@ -415,7 +415,7 @@ public class Network implements NetworkInterface {
         } else {
             accounts.get(accountId).removeArticle(articleId);
             accounts.get(accountId).decreaseContribution(persons.get(contributors.get(articleId)));
-            for (int follower : accounts.get(accountId).getFollowers()) {
+            for (int follower : accounts.get(accountId).viewFollowers()) {
                 persons.get(follower).removeReceivedArticle(articleId);
             }
         }
