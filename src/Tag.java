@@ -1,11 +1,13 @@
 import com.oocourse.spec3.main.PersonInterface;
 import com.oocourse.spec3.main.TagInterface;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 
 public class Tag implements TagInterface {
     private final int id;
-    private final HashSet<Person> persons;
+    private final HashSet<PersonInterface> persons;
     private int valueSum;
     private int ageSum;
     private int ageSquareSum;
@@ -25,27 +27,27 @@ public class Tag implements TagInterface {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof Tag)) {
+        if (!(obj instanceof TagInterface)) {
             return false;
         }
-        return ((Tag) obj).getId() == id;
+        return ((TagInterface) obj).getId() == id;
     }
 
     @Override
     public void addPerson(PersonInterface person) {
-        for (Person p : persons) {
+        for (PersonInterface p : persons) {
             if (p.isLinked(person)) {
                 valueSum += 2 * p.queryValue(person);
             }
         }
-        persons.add((Person) person);
+        persons.add(person);
         ageSum += person.getAge();
         ageSquareSum += person.getAge() * person.getAge();
     }
 
     @Override
     public boolean hasPerson(PersonInterface person) {
-        return persons.contains((Person) person);
+        return persons.contains(person);
     }
 
     @Override
@@ -76,8 +78,8 @@ public class Tag implements TagInterface {
 
     @Override
     public void delPerson(PersonInterface person) {
-        persons.remove((Person) person);
-        for (Person p : persons) {
+        persons.remove(person);
+        for (PersonInterface p : persons) {
             if (p.isLinked(person)) {
                 valueSum -= 2 * p.queryValue(person);
             }
@@ -89,5 +91,9 @@ public class Tag implements TagInterface {
     @Override
     public int getSize() {
         return persons.size();
+    }
+
+    public Set<PersonInterface> viewPersons() {
+        return Collections.unmodifiableSet(persons);
     }
 }

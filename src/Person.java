@@ -1,3 +1,4 @@
+import com.oocourse.spec3.main.MessageInterface;
 import com.oocourse.spec3.main.PersonInterface;
 import com.oocourse.spec3.main.TagInterface;
 
@@ -5,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.AbstractMap.SimpleEntry;
@@ -18,9 +19,12 @@ public class Person implements PersonInterface {
     private final int age;
     private final HashMap<Integer, Integer> values;
     private final TreeMap<Integer, TreeSet<Integer>> acquaintances;
-    private final HashMap<Integer, Tag> ownedTags;
-    private final HashMap<SimpleEntry<Integer, Integer>, Tag> relatedTags;
-    private final LinkedHashSet<Integer> receivedArticles;
+    private final HashMap<Integer, TagInterface> ownedTags;
+    private final HashMap<SimpleEntry<Integer, Integer>, TagInterface> relatedTags;
+    private final ArrayList<Integer> receivedArticles;
+    private final LinkedList<MessageInterface> messages;
+    private int money;
+    private int socialValue;
 
     public Person(int id, String name, int age) {
         this.id = id;
@@ -30,7 +34,8 @@ public class Person implements PersonInterface {
         this.acquaintances = new TreeMap<>();
         this.ownedTags = new HashMap<>();
         this.relatedTags = new HashMap<>();
-        this.receivedArticles = new LinkedHashSet<>();
+        this.receivedArticles = new ArrayList<>();
+        this.messages = new LinkedList<>();
     }
 
     @Override
@@ -54,13 +59,13 @@ public class Person implements PersonInterface {
     }
 
     @Override
-    public Tag getTag(int id) {
+    public TagInterface getTag(int id) {
         return ownedTags.get(id);
     }
 
     @Override
     public void addTag(TagInterface tag) {
-        ownedTags.put(tag.getId(), (Tag) tag);
+        ownedTags.put(tag.getId(), tag);
     }
 
     @Override
@@ -68,12 +73,12 @@ public class Person implements PersonInterface {
         ownedTags.remove(id);
     }
 
-    public Collection<Tag> viewRelatedTags() {
+    public Collection<TagInterface> viewRelatedTags() {
         return Collections.unmodifiableCollection(relatedTags.values());
     }
 
     public void addToTag(int personId, TagInterface tag) {
-        relatedTags.put(new SimpleEntry<>(personId, tag.getId()), (Tag) tag);
+        relatedTags.put(new SimpleEntry<>(personId, tag.getId()), tag);
     }
 
     public void delFromTag(int personId, TagInterface tag) {
@@ -82,20 +87,10 @@ public class Person implements PersonInterface {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof Person)) {
+        if (!(obj instanceof PersonInterface)) {
             return false;
         }
-        return ((Person) obj).getId() == id;
-    }
-
-    public boolean strictEquals(PersonInterface person) {
-        if (!(person instanceof Person)) {
-            return false;
-        }
-        Person p = (Person) person;
-        boolean basicEquals = p.getId() == id && p.getName().equals(name) && p.getAge() == age;
-        boolean objectEquals = p.ownedTags.equals(ownedTags) && p.values.equals(values);
-        return basicEquals && objectEquals;
+        return ((PersonInterface) obj).getId() == id;
     }
 
     @Override
@@ -152,23 +147,58 @@ public class Person implements PersonInterface {
 
     @Override
     public List<Integer> getReceivedArticles() {
-        List<Integer> articles = new ArrayList<>(receivedArticles);
-        Collections.reverse(articles);
-        return articles;
+        return Collections.unmodifiableList(receivedArticles);
     }
 
     @Override
     public List<Integer> queryReceivedArticles() {
-        List<Integer> articles = new ArrayList<>(receivedArticles);
-        Collections.reverse(articles);
-        return articles.subList(0, Math.min(5, articles.size()));
+        return Collections.unmodifiableList(receivedArticles)
+            .subList(0, Math.min(5, receivedArticles.size()));
     }
 
-    public void addReceivedArticle(int articleId) {
-        receivedArticles.add(articleId);
+    public boolean containsArticle(int articleId) {
+        return receivedArticles.contains(articleId);
     }
 
-    public void removeReceivedArticle(int articleId) {
-        receivedArticles.remove(articleId);
+    public void addArticle(int articleId) {
+        receivedArticles.add(0, articleId);
+    }
+
+    public void removeArticle(int articleId) {
+        receivedArticles.removeIf(id -> id == articleId);
+    }
+
+    @Override
+    public void addSocialValue(int num) {
+        socialValue += num;
+    }
+
+    @Override
+    public int getSocialValue() {
+        return socialValue;
+    }
+
+    @Override
+    public List<MessageInterface> getMessages() {
+        return new ArrayList<>(messages);
+    }
+
+    @Override
+    public List<MessageInterface> getReceivedMessages() {
+        return new ArrayList<>(messages).subList(0, Math.min(5, messages.size()));
+    }
+
+    public void addMessage(MessageInterface message) {
+        messages.addFirst(message);
+    }
+
+    @Override
+    public void addMoney(int num) {
+        money += num;
+    }
+
+    @Override
+    public int getMoney() {
+        return money;
     }
 }

@@ -3,21 +3,31 @@ import com.oocourse.spec3.exceptions.ArticleIdNotFoundException;
 import com.oocourse.spec3.exceptions.ContributePermissionDeniedException;
 import com.oocourse.spec3.exceptions.DeleteOfficialAccountPermissionDeniedException;
 import com.oocourse.spec3.exceptions.DeleteArticlePermissionDeniedException;
+import com.oocourse.spec3.exceptions.EmojiIdNotFoundException;
 import com.oocourse.spec3.exceptions.EqualArticleIdException;
+import com.oocourse.spec3.exceptions.EqualEmojiIdException;
+import com.oocourse.spec3.exceptions.EqualMessageIdException;
 import com.oocourse.spec3.exceptions.EqualOfficialAccountIdException;
 import com.oocourse.spec3.exceptions.EqualPersonIdException;
 import com.oocourse.spec3.exceptions.EqualRelationException;
 import com.oocourse.spec3.exceptions.EqualTagIdException;
+import com.oocourse.spec3.exceptions.MessageIdNotFoundException;
 import com.oocourse.spec3.exceptions.OfficialAccountIdNotFoundException;
 import com.oocourse.spec3.exceptions.PathNotFoundException;
 import com.oocourse.spec3.exceptions.PersonIdNotFoundException;
 import com.oocourse.spec3.exceptions.RelationNotFoundException;
 import com.oocourse.spec3.exceptions.TagIdNotFoundException;
+import com.oocourse.spec3.main.EmojiMessageInterface;
+import com.oocourse.spec3.main.ForwardMessageInterface;
+import com.oocourse.spec3.main.MessageInterface;
 import com.oocourse.spec3.main.NetworkInterface;
+import com.oocourse.spec3.main.OfficialAccountInterface;
 import com.oocourse.spec3.main.PersonInterface;
+import com.oocourse.spec3.main.RedEnvelopeMessageInterface;
 import com.oocourse.spec3.main.TagInterface;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -26,15 +36,19 @@ import java.util.Queue;
 import java.util.Set;
 
 public class Network implements NetworkInterface {
-    private final HashMap<Integer, Person> persons;
-    private final HashMap<Integer, OfficialAccount> accounts;
+    private final HashMap<Integer, PersonInterface> persons;
+    private final HashMap<Integer, OfficialAccountInterface> accounts;
     private final HashMap<Integer, Integer> contributors;
+    private final HashMap<Integer, MessageInterface> messages;
+    private final HashMap<Integer, Integer> emojiHeats;
     private int tripleSum;
 
     public Network() {
         persons = new HashMap<>();
         accounts = new HashMap<>();
         contributors = new HashMap<>();
+        messages = new HashMap<>();
+        emojiHeats = new HashMap<>();
         tripleSum = 0;
     }
 
@@ -44,12 +58,8 @@ public class Network implements NetworkInterface {
     }
 
     @Override
-    public Person getPerson(int id) {
+    public PersonInterface getPerson(int id) {
         return persons.get(id);
-    }
-
-    public PersonInterface[] getPersons() {
-        return persons.values().toArray(new Person[0]);
     }
 
     @Override
@@ -57,7 +67,7 @@ public class Network implements NetworkInterface {
         if (persons.containsKey(person.getId())) {
             throw new EqualPersonIdException(person.getId());
         } else {
-            persons.put(person.getId(), (Person) person);
+            persons.put(person.getId(), person);
         }
     }
 
@@ -71,8 +81,8 @@ public class Network implements NetworkInterface {
         } else if (persons.get(id1).isLinked(persons.get(id2))) {
             throw new EqualRelationException(id1, id2);
         } else {
-            persons.get(id1).addLinked(persons.get(id2), value);
-            persons.get(id2).addLinked(persons.get(id1), value);
+            ((Person) persons.get(id1)).addLinked(persons.get(id2), value);
+            ((Person) persons.get(id2)).addLinked(persons.get(id1), value);
             tripleSum += queryTripleSum(id1, id2);
             updateTagValueSum(id1, id2, 0, value);
         }
@@ -93,11 +103,11 @@ public class Network implements NetworkInterface {
             int oldValue = persons.get(id1).queryValue(persons.get(id2));
             int newValue = Math.max(oldValue + value, 0);
             if (newValue > 0) {
-                persons.get(id1).replaceLink(persons.get(id2), newValue);
-                persons.get(id2).replaceLink(persons.get(id1), newValue);
+                ((Person) persons.get(id1)).replaceLink(persons.get(id2), newValue);
+                ((Person) persons.get(id2)).replaceLink(persons.get(id1), newValue);
             } else {
-                persons.get(id1).removeLink(persons.get(id2));
-                persons.get(id2).removeLink(persons.get(id1));
+                ((Person) persons.get(id1)).removeLink(persons.get(id2));
+                ((Person) persons.get(id2)).removeLink(persons.get(id1));
                 tripleSum -= queryTripleSum(id1, id2);
             }
             updateTagValueSum(id1, id2, oldValue, newValue);
@@ -105,8 +115,8 @@ public class Network implements NetworkInterface {
     }
 
     private void updateTagValueSum(int id1, int id2, int oldValue, int newValue) {
-        Collection<Tag> relatedTags1 = persons.get(id1).viewRelatedTags();
-        Collection<Tag> relatedTags2 = persons.get(id2).viewRelatedTags();
+        Collection<TagInterface> relatedTags1 = ((Person) persons.get(id1)).viewRelatedTags();
+        Collection<TagInterface> relatedTags2 = ((Person) persons.get(id2)).viewRelatedTags();
         int relatedPerson2;
         if (relatedTags1.size() > relatedTags2.size()) {
             relatedTags1 = relatedTags2;
@@ -116,7 +126,7 @@ public class Network implements NetworkInterface {
         }
         relatedTags1.forEach(tag -> {
             if (tag.hasPerson(persons.get(relatedPerson2))) {
-                tag.modifyPerson(oldValue, newValue);
+                ((Tag) tag).modifyPerson(oldValue, newValue);
             }
         });
     }
@@ -128,8 +138,8 @@ public class Network implements NetworkInterface {
 
     private int queryTripleSum(int id1, int id2) {
         int sum = 0;
-        Set<Integer> neighbors1 = persons.get(id1).viewAcquaintances();
-        Set<Integer> neighbors2 = persons.get(id2).viewAcquaintances();
+        Set<Integer> neighbors1 = ((Person) persons.get(id1)).viewAcquaintances();
+        Set<Integer> neighbors2 = ((Person) persons.get(id2)).viewAcquaintances();
         if (neighbors1.size() > neighbors2.size()) {
             Set<Integer> temp = neighbors1;
             neighbors1 = neighbors2;
@@ -218,8 +228,10 @@ public class Network implements NetworkInterface {
         } else if (persons.get(personId2).getTag(tagId).hasPerson(persons.get(personId1))) {
             throw new EqualPersonIdException(personId1);
         } else if (persons.get(personId2).getTag(tagId).getSize() <= 999) {
-            persons.get(personId2).getTag(tagId).addPerson(persons.get(personId1));
-            persons.get(personId1).addToTag(personId2, persons.get(personId2).getTag(tagId));
+            PersonInterface person1 = persons.get(personId1);
+            PersonInterface person2 = persons.get(personId2);
+            person2.getTag(tagId).addPerson(person1);
+            ((Person) person1).addToTag(personId2, person2.getTag(tagId));
         }
     }
 
@@ -259,8 +271,10 @@ public class Network implements NetworkInterface {
         } else if (!persons.get(personId2).getTag(tagId).hasPerson(persons.get(personId1))) {
             throw new PersonIdNotFoundException(personId1);
         } else {
-            persons.get(personId2).getTag(tagId).delPerson(persons.get(personId1));
-            persons.get(personId1).delFromTag(personId2, persons.get(personId2).getTag(tagId));
+            PersonInterface person1 = persons.get(personId1);
+            PersonInterface person2 = persons.get(personId2);
+            person2.getTag(tagId).delPerson(person1);
+            ((Person) person1).delFromTag(personId2, person2.getTag(tagId));
         }
     }
 
@@ -277,26 +291,179 @@ public class Network implements NetworkInterface {
     }
 
     @Override
+    public boolean containsMessage(int id) {
+        return messages.containsKey(id);
+    }
+
+    @Override
+    public void addMessage(MessageInterface message) throws EqualMessageIdException,
+        EmojiIdNotFoundException, EqualPersonIdException, ArticleIdNotFoundException {
+        if (messages.containsKey(message.getId())) {
+            throw new EqualMessageIdException(message.getId());
+        } else if (message instanceof EmojiMessageInterface) {
+            EmojiMessageInterface emojiMessage = (EmojiMessageInterface) message;
+            if (!emojiHeats.containsKey(emojiMessage.getEmojiId())) {
+                throw new EmojiIdNotFoundException(emojiMessage.getEmojiId());
+            } else {
+                messages.put(message.getId(), message);
+            }
+        } else if (message instanceof ForwardMessageInterface) {
+            ForwardMessageInterface forwardMessage = (ForwardMessageInterface) message;
+            int articleId = forwardMessage.getArticleId();
+            if (!contributors.containsKey(articleId)) {
+                throw new ArticleIdNotFoundException(articleId);
+            } else if (!((Person)forwardMessage.getPerson1()).containsArticle(articleId)) {
+                throw new ArticleIdNotFoundException(articleId);
+            } else {
+                messages.put(message.getId(), message);
+            }
+        } else if (message.getType() == 0 && message.getPerson1().equals(message.getPerson2())) {
+            throw new EqualPersonIdException(message.getPerson1().getId());
+        } else {
+            messages.put(message.getId(), message);
+        }
+    }
+
+    @Override
+    public MessageInterface getMessage(int id) {
+        return messages.get(id);
+    }
+
+    @Override
+    public void sendMessage(int id) throws RelationNotFoundException, MessageIdNotFoundException,
+        TagIdNotFoundException {
+        if (!messages.containsKey(id)) {
+            throw new MessageIdNotFoundException(id);
+        } else {
+            MessageInterface message = messages.get(id);
+            PersonInterface person1 = message.getPerson1();
+            PersonInterface person2 = message.getPerson2();
+            Set<PersonInterface> targets = Collections.emptySet();
+            if (message.getType() == 0) {
+                if (!person1.isLinked(person2)) {
+                    throw new RelationNotFoundException(person1.getId(), person2.getId());
+                } else {
+                    targets = new HashSet<>();
+                    targets.add(person2);
+                }
+            } else if (message.getType() == 1) {
+                if (!person1.containsTag(message.getTag().getId())) {
+                    throw new TagIdNotFoundException(message.getTag().getId());
+                } else {
+                    targets = ((Tag) message.getTag()).viewPersons();
+                }
+            }
+            if (message.getType() == 0 || message.getType() == 1) {
+                messages.remove(id);
+                person1.addSocialValue(message.getSocialValue());
+                for (PersonInterface p : targets) {
+                    p.addSocialValue(message.getSocialValue());
+                }
+                if (message instanceof RedEnvelopeMessageInterface && !targets.isEmpty()) {
+                    int money = ((RedEnvelopeMessageInterface) message).getMoney();
+                    person1.addMoney(-money);
+                    for (PersonInterface p : targets) {
+                        p.addMoney(money / targets.size());
+                    }
+                } else if (message instanceof ForwardMessageInterface && !targets.isEmpty()) {
+                    int articleId = ((ForwardMessageInterface) message).getArticleId();
+                    for (PersonInterface p : targets) {
+                        ((Person) p).addArticle((articleId));
+                    }
+                } else if (message instanceof EmojiMessageInterface && !targets.isEmpty()) {
+                    int emojiId = ((EmojiMessageInterface) message).getEmojiId();
+                    emojiHeats.put(emojiId, emojiHeats.get(emojiId) + 1);
+                }
+                for (PersonInterface p : targets) {
+                    ((Person) p).addMessage(message);
+                }
+            }
+        }
+    }
+
+    @Override
+    public int querySocialValue(int id) throws PersonIdNotFoundException {
+        if (!persons.containsKey(id)) {
+            throw new PersonIdNotFoundException(id);
+        } else {
+            return persons.get(id).getSocialValue();
+        }
+    }
+
+    @Override
+    public List<MessageInterface> queryReceivedMessages(int id) throws PersonIdNotFoundException {
+        if (!persons.containsKey(id)) {
+            throw new PersonIdNotFoundException(id);
+        } else {
+            return persons.get(id).getReceivedMessages();
+        }
+    }
+
+    @Override
+    public boolean containsEmojiId(int id) {
+        return emojiHeats.containsKey(id);
+    }
+
+    @Override
+    public void storeEmojiId(int id) throws EqualEmojiIdException {
+        if (emojiHeats.containsKey(id)) {
+            throw new EqualEmojiIdException(id);
+        } else {
+            emojiHeats.put(id, 0);
+        }
+    }
+
+    @Override
+    public int queryMoney(int id) throws PersonIdNotFoundException {
+        if (!persons.containsKey(id)) {
+            throw new PersonIdNotFoundException(id);
+        } else {
+            return persons.get(id).getMoney();
+        }
+    }
+
+    @Override
+    public int queryPopularity(int id) throws EmojiIdNotFoundException {
+        if (!emojiHeats.containsKey(id)) {
+            throw new EmojiIdNotFoundException(id);
+        } else {
+            return emojiHeats.get(id);
+        }
+    }
+
+    @Override
+    public int deleteColdEmoji(int limit) {
+        emojiHeats.keySet().removeIf(id -> emojiHeats.get(id) < limit);
+        messages.values().removeIf(message -> {
+            if (message instanceof EmojiMessageInterface) {
+                return !emojiHeats.containsKey(((EmojiMessageInterface) message).getEmojiId());
+            }
+            return false;
+        });
+        return emojiHeats.size();
+    }
+
+    @Override
     public int queryBestAcquaintance(int id) throws PersonIdNotFoundException,
         AcquaintanceNotFoundException {
         if (!persons.containsKey(id)) {
             throw new PersonIdNotFoundException(id);
-        } else if (persons.get(id).getAcquaintanceSize() == 0) {
+        } else if (((Person) persons.get(id)).getAcquaintanceSize() == 0) {
             throw new AcquaintanceNotFoundException(id);
         } else {
-            return persons.get(id).queryBestAcquaintance();
+            return ((Person) persons.get(id)).queryBestAcquaintance();
         }
     }
 
     @Override
     public int queryCoupleSum() {
-        HashSet<Person> couples = new HashSet<>();
-        for (Person person : persons.values()) {
-            if (!couples.contains(person) && person.getAcquaintanceSize() != 0) {
-                Person bestAcquaintance = persons.get(person.queryBestAcquaintance());
-                if (bestAcquaintance.queryBestAcquaintance() == person.getId()) {
+        HashSet<PersonInterface> couples = new HashSet<>();
+        for (PersonInterface person : persons.values()) {
+            if (!couples.contains(person) && ((Person) person).getAcquaintanceSize() != 0) {
+                PersonInterface best = persons.get(((Person) person).queryBestAcquaintance());
+                if (((Person) best).queryBestAcquaintance() == person.getId()) {
                     couples.add(person);
-                    couples.add(bestAcquaintance);
+                    couples.add(best);
                 }
             }
         }
@@ -353,7 +520,7 @@ public class Network implements NetworkInterface {
         } else if (accounts.containsKey(accountId)) {
             throw new EqualOfficialAccountIdException(accountId);
         } else {
-            OfficialAccount account = new OfficialAccount(personId, accountId, name);
+            OfficialAccountInterface account = new OfficialAccount(personId, accountId, name);
             account.addFollower(persons.get(personId));
             accounts.put(accountId, account);
         }
@@ -394,8 +561,8 @@ public class Network implements NetworkInterface {
         } else {
             contributors.put(articleId, personId);
             accounts.get(accountId).addArticle(persons.get(personId), articleId);
-            for (int follower : accounts.get(accountId).viewFollowers()) {
-                persons.get(follower).addReceivedArticle(articleId);
+            for (int follower : ((OfficialAccount) accounts.get(accountId)).viewFollowers()) {
+                ((Person) persons.get(follower)).addArticle(articleId);
             }
         }
     }
@@ -413,10 +580,11 @@ public class Network implements NetworkInterface {
         } else if (accounts.get(accountId).getOwnerId() != personId) {
             throw new DeleteArticlePermissionDeniedException(personId, articleId);
         } else {
+            PersonInterface contributor = persons.get(contributors.get(articleId));
             accounts.get(accountId).removeArticle(articleId);
-            accounts.get(accountId).decreaseContribution(persons.get(contributors.get(articleId)));
-            for (int follower : accounts.get(accountId).viewFollowers()) {
-                persons.get(follower).removeReceivedArticle(articleId);
+            ((OfficialAccount) accounts.get(accountId)).decreaseContribution(contributor);
+            for (int follower : ((OfficialAccount) accounts.get(accountId)).viewFollowers()) {
+                ((Person) persons.get(follower)).removeArticle(articleId);
             }
         }
     }
@@ -456,7 +624,7 @@ public class Network implements NetworkInterface {
     private boolean search(Queue<Integer> queue, Set<Integer> visited, Set<Integer> otherVisited) {
         int size = queue.size();
         for (int i = 0; i < size; i++) {
-            for (int neighborId : persons.get(queue.poll()).viewAcquaintances()) {
+            for (int neighborId : ((Person) persons.get(queue.poll())).viewAcquaintances()) {
                 if (otherVisited.contains(neighborId)) {
                     return true;
                 }
@@ -475,7 +643,7 @@ public class Network implements NetworkInterface {
         for (int i = 0; i < size; i++) {
             Integer current = queue.poll();
             Integer currentDist = dist.get(current);
-            for (int neighborId : persons.get(current).viewAcquaintances()) {
+            for (int neighborId : ((Person) persons.get(current)).viewAcquaintances()) {
                 if (!visited.contains(neighborId)) {
                     visited.add(neighborId);
                     dist.put(neighborId, currentDist + 1);
