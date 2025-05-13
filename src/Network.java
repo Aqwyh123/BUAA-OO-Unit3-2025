@@ -296,32 +296,30 @@ public class Network implements NetworkInterface {
     }
 
     @Override
-    public void addMessage(MessageInterface message) throws EqualMessageIdException,
+    public void addMessage(MessageInterface msg) throws EqualMessageIdException,
         EmojiIdNotFoundException, EqualPersonIdException, ArticleIdNotFoundException {
-        if (messages.containsKey(message.getId())) {
-            throw new EqualMessageIdException(message.getId());
-        } else if (message instanceof EmojiMessageInterface) {
-            EmojiMessageInterface emojiMessage = (EmojiMessageInterface) message;
-            if (!emojiHeats.containsKey(emojiMessage.getEmojiId())) {
-                throw new EmojiIdNotFoundException(emojiMessage.getEmojiId());
-            } else {
-                messages.put(message.getId(), message);
+        if (messages.containsKey(msg.getId())) {
+            throw new EqualMessageIdException(msg.getId());
+        } else if (msg instanceof EmojiMessageInterface) {
+            int emojiId = ((EmojiMessageInterface) msg).getEmojiId();
+            if (!emojiHeats.containsKey(emojiId)) {
+                throw new EmojiIdNotFoundException(emojiId);
+            } else if (msg.getType() == 0 && msg.getPerson1().equals(msg.getPerson2())) {
+                throw new EqualPersonIdException(msg.getPerson1().getId());
             }
-        } else if (message instanceof ForwardMessageInterface) {
-            ForwardMessageInterface forwardMessage = (ForwardMessageInterface) message;
-            int articleId = forwardMessage.getArticleId();
+        } else if (msg instanceof ForwardMessageInterface) {
+            int articleId = ((ForwardMessageInterface) msg).getArticleId();
             if (!contributors.containsKey(articleId)) {
                 throw new ArticleIdNotFoundException(articleId);
-            } else if (!((Person)forwardMessage.getPerson1()).containsArticle(articleId)) {
+            } else if (!((Person)msg.getPerson1()).containsArticle(articleId)) {
                 throw new ArticleIdNotFoundException(articleId);
-            } else {
-                messages.put(message.getId(), message);
+            } else if (msg.getType() == 0 && msg.getPerson1().equals(msg.getPerson2())) {
+                throw new EqualPersonIdException(msg.getPerson1().getId());
             }
-        } else if (message.getType() == 0 && message.getPerson1().equals(message.getPerson2())) {
-            throw new EqualPersonIdException(message.getPerson1().getId());
-        } else {
-            messages.put(message.getId(), message);
+        } else if (msg.getType() == 0 && msg.getPerson1().equals(msg.getPerson2())) {
+            throw new EqualPersonIdException(msg.getPerson1().getId());
         }
+        messages.put(msg.getId(), msg);
     }
 
     @Override
@@ -361,7 +359,7 @@ public class Network implements NetworkInterface {
                 }
                 if (message instanceof RedEnvelopeMessageInterface && !targets.isEmpty()) {
                     int money = ((RedEnvelopeMessageInterface) message).getMoney();
-                    person1.addMoney(-money);
+                    person1.addMoney(-(money / targets.size() * targets.size()));
                     for (PersonInterface p : targets) {
                         p.addMoney(money / targets.size());
                     }
