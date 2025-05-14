@@ -368,7 +368,7 @@ public class Network implements NetworkInterface {
                     for (PersonInterface p : targets) {
                         ((Person) p).addArticle((articleId));
                     }
-                } else if (message instanceof EmojiMessageInterface && !targets.isEmpty()) {
+                } else if (message instanceof EmojiMessageInterface) {
                     int emojiId = ((EmojiMessageInterface) message).getEmojiId();
                     emojiHeats.put(emojiId, emojiHeats.get(emojiId) + 1);
                 }
@@ -617,6 +617,18 @@ public class Network implements NetworkInterface {
         } else {
             return persons.get(id).queryReceivedArticles();
         }
+    }
+
+    public MessageInterface[] getMessages() {
+        return messages.values().toArray(new MessageInterface[0]);
+    }
+
+    public int[] getEmojiIdList() {
+        return emojiHeats.keySet().stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    public int[] getEmojiHeatList() {
+        return emojiHeats.values().stream().mapToInt(Integer::intValue).toArray();
     }
 
     private boolean search(Queue<Integer> queue, Set<Integer> visited, Set<Integer> otherVisited) {
