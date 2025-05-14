@@ -21,7 +21,7 @@ public class Person implements PersonInterface {
     private final TreeMap<Integer, TreeSet<Integer>> acquaintances;
     private final HashMap<Integer, TagInterface> ownedTags;
     private final HashMap<SimpleEntry<Integer, Integer>, TagInterface> relatedTags;
-    private final ArrayList<Integer> receivedArticles;
+    private final ReservedLinkedHashMultiSet<Integer> receivedArticles;
     private final LinkedList<MessageInterface> messages;
     private int money;
     private int socialValue;
@@ -34,7 +34,7 @@ public class Person implements PersonInterface {
         this.acquaintances = new TreeMap<>();
         this.ownedTags = new HashMap<>();
         this.relatedTags = new HashMap<>();
-        this.receivedArticles = new ArrayList<>();
+        this.receivedArticles = new ReservedLinkedHashMultiSet<>();
         this.messages = new LinkedList<>();
     }
 
@@ -147,13 +147,12 @@ public class Person implements PersonInterface {
 
     @Override
     public List<Integer> getReceivedArticles() {
-        return Collections.unmodifiableList(receivedArticles);
+        return receivedArticles.toList();
     }
 
     @Override
     public List<Integer> queryReceivedArticles() {
-        return Collections.unmodifiableList(receivedArticles)
-            .subList(0, Math.min(5, receivedArticles.size()));
+        return receivedArticles.toList().subList(0, Math.min(5, receivedArticles.size()));
     }
 
     public boolean containsArticle(int articleId) {
@@ -161,11 +160,11 @@ public class Person implements PersonInterface {
     }
 
     public void addArticle(int articleId) {
-        receivedArticles.add(0, articleId);
+        receivedArticles.add(articleId);
     }
 
     public void removeArticle(int articleId) {
-        receivedArticles.removeIf(id -> id == articleId);
+        receivedArticles.remove(articleId);
     }
 
     @Override
