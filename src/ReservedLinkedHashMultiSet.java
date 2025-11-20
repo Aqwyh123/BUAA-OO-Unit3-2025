@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +27,7 @@ public class ReservedLinkedHashMultiSet<E> {
     public void add(E element) {
         Node<E> newNode = new Node<>(element);
         linkToHead(newNode);
-        elementMap.computeIfAbsent(element, e -> new LinkedList<>()).add(newNode);
+        elementMap.computeIfAbsent(element, e -> new ArrayList<>()).add(newNode);
         size++;
     }
 

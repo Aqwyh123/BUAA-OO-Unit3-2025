@@ -38,7 +38,7 @@ import java.util.Set;
 public class Network implements NetworkInterface {
     private final HashMap<Integer, PersonInterface> persons;
     private final HashMap<Integer, OfficialAccountInterface> accounts;
-    private final HashMap<Integer, Integer> contributors;
+    private final HashMap<Integer, PersonInterface> contributors;
     private final HashMap<Integer, MessageInterface> messages;
     private final HashMap<Integer, Integer> emojiHeats;
     private int tripleSum;
@@ -557,7 +557,7 @@ public class Network implements NetworkInterface {
         } else if (!accounts.get(accountId).containsFollower(persons.get(personId))) {
             throw new ContributePermissionDeniedException(personId, articleId);
         } else {
-            contributors.put(articleId, personId);
+            contributors.put(articleId, persons.get(personId));
             accounts.get(accountId).addArticle(persons.get(personId), articleId);
             for (int follower : ((OfficialAccount) accounts.get(accountId)).viewFollowers()) {
                 ((Person) persons.get(follower)).addArticle(articleId);
@@ -578,7 +578,7 @@ public class Network implements NetworkInterface {
         } else if (accounts.get(accountId).getOwnerId() != personId) {
             throw new DeleteArticlePermissionDeniedException(personId, articleId);
         } else {
-            PersonInterface contributor = persons.get(contributors.get(articleId));
+            PersonInterface contributor = contributors.get(articleId);
             accounts.get(accountId).removeArticle(articleId);
             ((OfficialAccount) accounts.get(accountId)).decreaseContribution(contributor);
             for (int follower : ((OfficialAccount) accounts.get(accountId)).viewFollowers()) {
